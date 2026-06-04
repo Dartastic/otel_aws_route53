@@ -2,7 +2,6 @@
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
-import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_aws_route53_suppression.dart';
 
@@ -50,46 +49,61 @@ Future<T> tracedAwsRoute53<T>({
   final t = tracer ?? OTel.tracerProvider().getTracer('otel_aws_route53');
   final span = t.startSpan('route53 $operation', kind: SpanKind.client);
   try {
-    span.setStringAttribute('rpc.system', 'aws-api');
-    span.setStringAttribute('rpc.service', 'Route53');
-    span.setStringAttribute('dns.system', 'route53');
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('rpc.system', 'aws-api')]));
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('rpc.service', 'Route53')]));
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('dns.system', 'route53')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.hostedZoneId != null) {
-        span.setStringAttribute(
-            'aws.route53.hosted_zone.id', res.hostedZoneId!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString('aws.route53.hosted_zone.id', res.hostedZoneId!)
+        ]));
       }
       if (res.hostedZoneName != null) {
-        span.setStringAttribute('dns.zone', res.hostedZoneName!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('dns.zone', res.hostedZoneName!)]));
       }
       if (res.recordName != null) {
-        span.setStringAttribute('dns.name', res.recordName!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('dns.name', res.recordName!)]));
       }
       if (res.recordType != null) {
-        span.setStringAttribute('dns.record.type', res.recordType!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('dns.record.type', res.recordType!)]));
       }
       if (res.ttl != null) {
-        span.setIntAttribute('dns.ttl', res.ttl!);
+        span.addAttributes(
+            OTel.attributes([OTel.attributeInt('dns.ttl', res.ttl!)]));
       }
       if (res.healthCheckId != null) {
-        span.setStringAttribute(
-            'aws.route53.health_check.id', res.healthCheckId!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+              'aws.route53.health_check.id', res.healthCheckId!)
+        ]));
       }
       if (res.region != null) {
-        span.setStringAttribute('cloud.region', res.region!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('cloud.region', res.region!)]));
       }
       if (res.statusCode != null) {
-        span.setIntAttribute('http.response.status_code', res.statusCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
       }
       if (res.errorCode != null) {
-        span.setStringAttribute('route53.error.code', res.errorCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('route53.error.code', res.errorCode!)]));
       }
       final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.setStringAttribute(
-            ErrorResource.errorType.key, res.errorCode ?? 'route53.error');
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+              ErrorResource.errorType.key, res.errorCode ?? 'route53.error')
+        ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
     }
