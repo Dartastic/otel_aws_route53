@@ -1,11 +1,12 @@
-// Licensed under the Dartastic Pro Software License Agreement.
+// Licensed under the Apache License, Version 2.0
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_aws_route53_suppression.dart';
 
 class AwsRoute53Result {
+  /// Creates a result.
   const AwsRoute53Result({
     this.hostedZoneId,
     this.hostedZoneName,
@@ -31,8 +32,13 @@ class AwsRoute53Result {
   final String? errorMessage;
 }
 
+/// What a traced call returned: the value for the caller plus fields
+/// recorded on the span.
 class AwsRoute53CallResult<T> {
+  /// Creates a call result.
   const AwsRoute53CallResult({required this.value, this.result});
+
+  /// The value returned to the caller.
   final T value;
   final AwsRoute53Result? result;
 }
@@ -40,69 +46,71 @@ class AwsRoute53CallResult<T> {
 Future<T> tracedAwsRoute53<T>({
   required String operation,
   required Future<AwsRoute53CallResult<T>> Function() invoke,
-  Tracer? tracer,
+  APITracer? tracer,
 }) async {
   if (awsRoute53InstrumentationSuppressed()) {
     final r = await invoke();
     return r.value;
   }
-  final t = tracer ?? OTel.tracerProvider().getTracer('otel_aws_route53');
+  final t = tracer ?? OTelAPI.tracerProvider().getTracer('otel_aws_route53');
   final span = t.startSpan('route53 $operation', kind: SpanKind.client);
   try {
     span.addAttributes(
-        OTel.attributes([OTel.attributeString('rpc.system', 'aws-api')]));
+        OTelAPI.attributes([OTelAPI.attributeString('rpc.system', 'aws-api')]));
+    span.addAttributes(OTelAPI.attributes(
+        [OTelAPI.attributeString('rpc.service', 'Route53')]));
     span.addAttributes(
-        OTel.attributes([OTel.attributeString('rpc.service', 'Route53')]));
-    span.addAttributes(
-        OTel.attributes([OTel.attributeString('dns.system', 'route53')]));
+        OTelAPI.attributes([OTelAPI.attributeString('dns.system', 'route53')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.hostedZoneId != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString('aws.route53.hosted_zone.id', res.hostedZoneId!)
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
+              'aws.route53.hosted_zone.id', res.hostedZoneId!)
         ]));
       }
       if (res.hostedZoneName != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('dns.zone', res.hostedZoneName!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('dns.zone', res.hostedZoneName!)]));
       }
       if (res.recordName != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('dns.name', res.recordName!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('dns.name', res.recordName!)]));
       }
       if (res.recordType != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('dns.record.type', res.recordType!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('dns.record.type', res.recordType!)]));
       }
       if (res.ttl != null) {
         span.addAttributes(
-            OTel.attributes([OTel.attributeInt('dns.ttl', res.ttl!)]));
+            OTelAPI.attributes([OTelAPI.attributeInt('dns.ttl', res.ttl!)]));
       }
       if (res.healthCheckId != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
               'aws.route53.health_check.id', res.healthCheckId!)
         ]));
       }
       if (res.region != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('cloud.region', res.region!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('cloud.region', res.region!)]));
       }
       if (res.statusCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('http.response.status_code', res.statusCode!)
+        ]));
       }
       if (res.errorCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('route53.error.code', res.errorCode!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('route53.error.code', res.errorCode!)]));
       }
       final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
-              ErrorResource.errorType.key, res.errorCode ?? 'route53.error')
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
+              ErrorAttributes.errorType.key, res.errorCode ?? 'route53.error')
         ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
