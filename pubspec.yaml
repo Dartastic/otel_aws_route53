@@ -2,7 +2,7 @@ name: otel_aws_route53
 description: >-
   OpenTelemetry instrumentation for aws_route53 by Dartastic.io. Adds standard
   OpenTelemetry observability to applications that use aws_route53.
-version: 0.1.0-wip
+version: 0.1.0
 repository: https://github.com/dartastic/otel_aws_route53
 homepage: https://dartastic.io
 
